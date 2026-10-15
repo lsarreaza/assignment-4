@@ -4,7 +4,7 @@ const form = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
 
 function showValue(value) {
-	return value || 'Not available';
+	return value === null || value === undefined || value === '' ? 'Not available' : value;
 }
 
 function addDetail(card, label, value) {
@@ -41,6 +41,7 @@ async function searchShows(searchTerm) {
 
 	const shows = await response.json();
 	results.replaceChildren();
+	statusMessage.textContent = shows.length ? '' : 'No shows found.';
 
 	shows.slice(0, 10).forEach((result) => {
 		const show = result.show;
@@ -61,6 +62,8 @@ async function searchShows(searchTerm) {
 			poster.src = show.image.medium;
 			poster.alt = `${show.name} poster`;
 			card.append(poster);
+		} else {
+			addDetail(card, 'Poster', 'Not available');
 		}
 
 		const summary = show.summary
@@ -83,8 +86,16 @@ async function searchShows(searchTerm) {
 
 form.addEventListener('submit', (event) => {
 	event.preventDefault();
+	const searchTerm = searchInput.value.trim();
 	results.replaceChildren();
-	searchShows(searchInput.value.trim()).catch(() => {
+	statusMessage.textContent = '';
+
+	if (!searchTerm) {
+		statusMessage.textContent = 'Please enter a show title or keyword.';
+		return;
+	}
+
+	searchShows(searchTerm).catch(() => {
 		statusMessage.textContent = 'Unable to load shows.';
 	});
 });
