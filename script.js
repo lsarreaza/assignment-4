@@ -18,7 +18,7 @@ async function loadCast(show, castDetail) {
 		const response = await fetch(`https://api.tvmaze.com/shows/${show.id}/cast`);
 
 		if (!response.ok) {
-			throw new Error('Cast request failed');
+			throw new Error(response.status === 429 ? 'Rate limit reached' : 'Cast request failed');
 		}
 
 		const cast = await response.json();
@@ -27,8 +27,10 @@ async function loadCast(show, castDetail) {
 			.map((entry) => entry.person ? entry.person.name : null)
 			.filter(Boolean);
 		castDetail.textContent = `Cast: ${showValue(castNames.join(', '))}`;
-	} catch {
-		castDetail.textContent = 'Cast: Not available';
+	} catch (error) {
+		castDetail.textContent = error.message === 'Rate limit reached'
+			? 'Cast: Rate limit reached. Try again later.'
+			: 'Cast: Not available';
 	}
 }
 
@@ -36,7 +38,7 @@ async function searchShows(searchTerm) {
 	const response = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(searchTerm)}`);
 
 	if (!response.ok) {
-		throw new Error('Request failed');
+		throw new Error(response.status === 429 ? 'Rate limit reached' : 'Request failed');
 	}
 
 	const shows = await response.json();
@@ -52,8 +54,6 @@ async function searchShows(searchTerm) {
 		title.textContent = showValue(show.name);
 		link.href = show.url;
 		link.textContent = 'View on TVmaze';
-		link.target = '_blank';
-		link.rel = 'noreferrer';
 
 		card.append(title);
 
@@ -95,7 +95,15 @@ form.addEventListener('submit', (event) => {
 		return;
 	}
 
-	searchShows(searchTerm).catch(() => {
-		statusMessage.textContent = 'Unable to load shows.';
+	searchShows(searchTerm).catch((error) => {
+		statusMessage.textContent = error.message === 'Rate limit reached'
+			? 'Too many requests. Please try again later.'
+			: 'Unable to load shows.';
 	});
+});
+
+searchShows('fullmetal alchemist').catch((error) => {
+	statusMessage.textContent = error.message === 'Rate limit reached'
+		? 'Too many requests. Please try again later.'
+		: 'Unable to load shows.';
 });
